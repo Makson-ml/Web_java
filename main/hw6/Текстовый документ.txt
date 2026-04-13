@@ -1,0 +1,36 @@
+Задание 1
+
+1. ReentrantLock vs synchronized
+ReentrantLock поддерживает прерываемое ожидание через lockInterruptibly() и позволяет создавать несколько независимых условий ожидания Condition. Также доступен tryLock() с таймаутом и настройка честного режима блокировки.
+
+ReentrantLock lock = new ReentrantLock();
+lock.lock();
+try { /* critical section */ } finally { lock.unlock(); }
+
+
+2. Condition vs wait/notify
+Два условия разделяют производителей и потребителей на независимые очереди ожидания. signal() будит только нужный тип потоков, тогда как notifyAll() пробуждает всех, вызывая лишние переключения контекста и ложные проверки.
+
+Condition notFull = lock.newCondition();
+Condition notEmpty = lock.newCondition();
+notFull.await();
+notEmpty.signal();
+
+3. ConcurrentHashMap и "check-then-act"
+Между проверкой containsKey() и вызовом put() другой поток может изменить карту, что приведёт к потере данных или дублированию. Атомарные методы гарантируют выполнение операции как единого действия.
+
+map.putIfAbsent(key, value);
+map.computeIfAbsent(key, k -> computeValue(k));
+
+4. AtomicLong vs LongAdder
+AtomicLong использует CAS над одной переменной, что создаёт конкуренцию при частых обновлениях, а LongAdder распределяет инкременты по внутренним ячейкам, суммируя их только при чтении. LongAdder предпочтителен для высоконагруженных счётчиков, где важна пропускная способность, а не мгновенная точность.
+
+LongAdder counter = new LongAdder();
+counter.increment();
+long total = counter.sum();
+
+5. ThreadPoolExecutor vs ForkJoinPool
+ThreadPoolExecutor оптимален для задач с блокирующим I/O и долгих операций, а ForkJoinPool предназначен для рекурсивных CPU-задач с work-stealing. Блокирующий I/O в commonPool() опасен, так как исчерпывает общие потоки и блокирует выполнение других асинхронных задач приложения.
+
+ExecutorService ioPool = Executors.newFixedThreadPool(10);
+ForkJoinPool cpuPool = new ForkJoinPool();
